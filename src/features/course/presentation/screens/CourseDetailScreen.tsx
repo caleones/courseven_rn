@@ -461,23 +461,11 @@ export default function CourseDetailScreen() {
 	}, [courseId, navigation, reviewActivityIds]);
 
 	const handleViewPeerReviewGroup = useCallback(() => {
-		if (!courseId || !myPeerReviewGroup || reviewActivityIds.length === 0) return;
-		const routeName = "PeerReviewGroupSummary";
-		const state = navigation.getState?.();
-		if (!state?.routeNames?.includes(routeName)) {
-			Alert.alert(
-				"Próximamente",
-				"El promedio de grupo para Peer Review estará disponible pronto.",
-			);
-			return;
-		}
-		navigation.navigate(routeName as never, {
+		if (!courseId || reviewActivityIds.length === 0) return;
+		navigation.navigate("PeerReviewSelectGroup" as never, {
 			courseId,
-			groupId: myPeerReviewGroup.id,
-			groupName: myPeerReviewGroup.name,
-			activityIds: reviewActivityIds,
 		} as never);
-	}, [courseId, myPeerReviewGroup, navigation, reviewActivityIds]);
+	}, [courseId, navigation, reviewActivityIds]);
 
 	const metaItems = useMemo<MetaRowItem[]>(
 		() => [

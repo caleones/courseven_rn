@@ -27,9 +27,15 @@ import CreateOptionsScreen from "./features/create/presentation/screens/CreateOp
 import JoinCourseScreen from "./features/enrollment/presentation/screens/JoinCourseScreen";
 import CreateGroupScreen from "./features/group/presentation/screens/CreateGroupScreen";
 import JoinGroupScreen from "./features/group/presentation/screens/JoinGroupScreen";
+import { ActivityDetailScreen } from "./features/activity/presentation/screens/ActivityDetailScreen";
+import { PeerReviewCalificarScreen } from "./features/activity/presentation/screens/PeerReviewCalificarScreen";
+import { PeerReviewEvaluateScreen } from "./features/activity/presentation/screens/PeerReviewEvaluateScreen";
+import { PeerReviewMisResultadosScreen } from "./features/activity/presentation/screens/PeerReviewMisResultadosScreen";
 import HomeScreen from "./features/home/presentation/screens/HomeScreen";
 import NotificationsScreen from "./features/notifications/presentation/screens/NotificationsScreen";
 import CoursePeerReviewSummaryScreen from "./features/peerReview/presentation/screens/CoursePeerReviewSummaryScreen";
+import { PeerReviewSelectGroupScreen } from "./features/peerReview/presentation/screens/PeerReviewSelectGroupScreen";
+import { PeerReviewGroupSummaryScreen } from "./features/peerReview/presentation/screens/PeerReviewGroupSummaryScreen";
 import AddProductScreen from "./features/products/presentation/screens/AddProductScreen";
 import UpdateProductScreen from "./features/products/presentation/screens/UpdateProductScreen";
 import SettingScreen from "./features/settings/SettingScreen";
@@ -153,6 +159,34 @@ export default function AuthFlow() {
             }}
           />
           <Stack.Screen
+            name="ActivityDetail"
+            component={ActivityDetailScreen}
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="PeerReviewCalificar"
+            component={PeerReviewCalificarScreen}
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="PeerReviewEvaluate"
+            component={PeerReviewEvaluateScreen}
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="PeerReviewMisResultados"
+            component={PeerReviewMisResultadosScreen}
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
             name="AddProductScreen"
             component={AddProductScreen}
             options={{
@@ -211,6 +245,20 @@ export default function AuthFlow() {
           <Stack.Screen
             name="PeerReviewCourseSummary"
             component={CoursePeerReviewSummaryScreen}
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="PeerReviewSelectGroup"
+            component={PeerReviewSelectGroupScreen}
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="PeerReviewGroupSummary"
+            component={PeerReviewGroupSummaryScreen}
             options={{
               headerShown: false,
             }}

@@ -19,6 +19,7 @@ import {
 import { BottomNavigationDock } from "@/src/components/BottomNavigationDock";
 import { CourseActivity } from "@/src/domain/models/CourseActivity";
 import { useActivityController } from "@/src/features/activity/hooks/useActivityController";
+import { useCategoryController } from "@/src/features/category/hooks/useCategoryController";
 import { useCourseController } from "@/src/features/course/hooks/useCourseController";
 
 const MONTH_FORMAT: Intl.DateTimeFormatOptions = {
@@ -47,6 +48,7 @@ const CourseActivitiesScreen = () => {
 
   const theme = useTheme();
   const [, courseController] = useCourseController();
+  const [categoryState, categoryController] = useCategoryController();
   const [activityState, activityController] = useActivityController();
 
   const [courseTitle, setCourseTitle] = useState<string>("Curso");
@@ -66,13 +68,14 @@ const CourseActivitiesScreen = () => {
       if (course) {
         setCourseTitle(course.name);
       }
-      if (isTeacher) {
-        await activityController.loadByCourse(courseId, { force });
-      } else {
-        await activityController.loadForStudent(courseId, { force });
-      }
+      await Promise.all([
+        categoryController.loadByCourse(courseId, { force }),
+        isTeacher
+          ? activityController.loadByCourse(courseId, { force })
+          : activityController.loadForStudent(courseId, { force }),
+      ]);
     },
-    [activityController, courseController, courseId, isTeacher],
+    [activityController, categoryController, courseController, courseId, isTeacher],
   );
 
   useFocusEffect(
@@ -108,6 +111,8 @@ const CourseActivitiesScreen = () => {
       if (!courseId) return;
       if (isTeacher) {
         navigation.navigate("EditActivity", { courseId, activityId: activity.id });
+      } else {
+        navigation.navigate("ActivityDetail", { courseId, activityId: activity.id });
       }
     },
     [courseId, isTeacher, navigation],
@@ -178,12 +183,15 @@ const CourseActivitiesScreen = () => {
               {activities.map((activity) => {
                 const dueDate = formatDateTime(activity.dueDate);
                 const created = formatDateTime(activity.createdAt);
+                const category = categoryController.categoriesFor(courseId).find((cat) => cat.id === activity.categoryId);
+                const categoryName = category?.name ?? "Sin categoría";
+                const description = activity.description ?? "Sin descripción";
                 return (
                   <List.Item
                     key={activity.id}
                     title={activity.title}
-                    description={`${activity.description ?? "Sin descripción"}\nEntrega: ${dueDate}`}
-                    descriptionNumberOfLines={3}
+                    description={`Categoría: ${categoryName}\n${description}\nEntrega: ${dueDate}`}
+                    descriptionNumberOfLines={4}
                     left={(props) => <List.Icon {...props} icon="clipboard-text-outline" />}
                     right={(props) => (
                       <View style={styles.itemMeta}>
