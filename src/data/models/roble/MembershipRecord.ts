@@ -5,6 +5,7 @@ export type MembershipRecord = {
   user_id: string;
   group_id: string;
   joined_at?: string;
+  joinet_at?: string; // Nombre correcto de la columna en la base de datos
   is_active?: boolean;
 };
 
@@ -30,6 +31,14 @@ export const toMembershipRecord = (raw: Record<string, unknown>): MembershipReco
       : typeof raw.joinedAt === "string"
         ? raw.joinedAt
         : undefined,
+  joinet_at:
+    typeof raw.joinet_at === "string"
+      ? raw.joinet_at
+      : typeof raw.joined_at === "string"
+        ? raw.joined_at
+        : typeof raw.joinedAt === "string"
+          ? raw.joinedAt
+          : undefined,
   is_active: toBoolean(raw.is_active, true),
 });
 
@@ -39,7 +48,7 @@ export const mapMembershipRecordToEntity = (
   id: record._id ?? "",
   userId: record.user_id ?? "",
   groupId: record.group_id ?? "",
-  joinedAt: record.joined_at ?? new Date().toISOString(),
+  joinedAt: record.joinet_at ?? record.joined_at ?? new Date().toISOString(),
   isActive: toBoolean(record.is_active, true),
 });
 
@@ -49,6 +58,6 @@ export const mapMembershipEntityToRecord = (
   _id: membership.id,
   user_id: membership.userId,
   group_id: membership.groupId,
-  joined_at: membership.joinedAt ?? new Date().toISOString(),
+  joinet_at: membership.joinedAt ?? new Date().toISOString(), // Usar el nombre correcto de la columna
   is_active: membership.isActive,
 });

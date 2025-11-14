@@ -66,6 +66,8 @@ export class MembershipRepositoryImpl implements MembershipRepository {
     if (typeof payload._id !== "string" || payload._id.length === 0) {
       delete payload._id;
     }
+    // Eliminar joined_at si existe (usamos joinet_at que es el nombre correcto)
+    delete payload.joined_at;
     const response = await this.service.insertMembership({
       accessToken: token,
       record: payload,
@@ -95,7 +97,7 @@ export class MembershipRepositoryImpl implements MembershipRepository {
       updates: {
         user_id: membership.userId,
         group_id: membership.groupId,
-        joined_at: membership.joinedAt,
+        joinet_at: membership.joinedAt, // Usar el nombre correcto de la columna
         is_active: membership.isActive,
       },
     });

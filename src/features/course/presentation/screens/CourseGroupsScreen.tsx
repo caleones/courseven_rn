@@ -18,6 +18,7 @@ import {
 } from "react-native-paper";
 
 import { BottomNavigationDock } from "@/src/components/BottomNavigationDock";
+import { Category } from "@/src/domain/models/Category";
 import { Group } from "@/src/domain/models/Group";
 import { useCategoryController } from "@/src/features/category/hooks/useCategoryController";
 import { useCourseController } from "@/src/features/course/hooks/useCourseController";
@@ -58,8 +59,8 @@ const CourseGroupsScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   const categories = useMemo(() => {
-    if (!courseId) return [];
-    return categoryController.categoriesFor(courseId);
+    if (!courseId) return [] as Category[];
+    return categoryController.categoriesFor(courseId).filter((category) => category.isActive);
   }, [categoryController, courseId]);
 
   const categoryNames = useMemo(() => {
@@ -77,6 +78,19 @@ const CourseGroupsScreen = () => {
       .slice()
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [courseId, groupController]);
+
+  const groupsByCategory = useMemo(() => {
+    const map = new Map<string, Group[]>();
+    for (const group of groups) {
+      const existing = map.get(group.categoryId);
+      if (existing) {
+        existing.push(group);
+      } else {
+        map.set(group.categoryId, [group]);
+      }
+    }
+    return map;
+  }, [groups]);
 
   const joinedGroupIds = useMemo(() => new Set(membershipState.myGroupIds), [membershipState.myGroupIds]);
   const memberCounts = membershipState.groupMemberCounts;
@@ -137,14 +151,16 @@ const CourseGroupsScreen = () => {
       const result = await membershipController.joinGroup(groupId);
       const snapshot = membershipController.getSnapshot();
       if (result) {
-        Alert.alert("Unido", "Te has unido al grupo.");
+        Alert.alert("¡Unido!", "Te has unido al grupo exitosamente.");
+        // Actualizar los datos después de unirse
+        await loadData({ force: true });
       } else if (snapshot.error) {
         Alert.alert("Error", snapshot.error);
       } else {
-        Alert.alert("Error", "No fue posible unirse." );
+        Alert.alert("Error", "No fue posible unirse al grupo.");
       }
     },
-    [membershipController],
+    [membershipController, loadData],
   );
 
   const loading =
@@ -206,46 +222,86 @@ const CourseGroupsScreen = () => {
               ) : null}
             </View>
           ) : (
-            <List.Section>
-              {groups.map((group) => {
-                const categoryName = categoryNames.get(group.categoryId) ?? "Sin categoría";
-                const memberCount = memberCounts[group.id];
-                const joined = joinedGroupIds.has(group.id);
-                return (
-                  <List.Item
-                    key={group.id}
-                    title={group.name}
-                    description={`${categoryName}\nCreado: ${formatDate(group.createdAt)}`}
-                    descriptionNumberOfLines={3}
-                    left={(props) => <List.Icon {...props} icon="account-group" />}
-                    right={() => (
-                      <View style={styles.itemMeta}>
-                        <Text style={[styles.itemMetaText, { color: theme.colors.onSurfaceVariant }]}>
-                          {typeof memberCount === "number" ? `${memberCount} miembro${memberCount === 1 ? "" : "s"}` : "Sin datos"}
+            <View>
+              {categories.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Text style={[styles.emptyTitle, { color: theme.colors.onSurface }]}>No hay categorías</Text>
+                  <Text style={[styles.emptySubtitle, { color: theme.colors.onSurfaceVariant }]}>
+                    Los grupos se organizan por categorías. Aún no hay categorías en este curso.
+                  </Text>
+                </View>
+              ) : (
+                categories.map((category) => {
+                  const categoryGroups = groupsByCategory.get(category.id) ?? [];
+                  if (categoryGroups.length === 0) {
+                    return null;
+                  }
+                  return (
+                    <View key={category.id} style={styles.categorySection}>
+                      <View style={styles.categoryHeader}>
+                        <Text style={[styles.categoryTitle, { color: theme.colors.onSurface }]}>
+                          {category.name}
                         </Text>
-                        {isTeacher ? (
-                          <Text style={[styles.statusText, { color: group.isActive ? theme.colors.primary : theme.colors.onSurfaceVariant }]}>
-                            {group.isActive ? "Activo" : "Archivado"}
+                        <Text style={[styles.categorySubtitle, { color: theme.colors.onSurfaceVariant }]}>
+                          {category.description || "Sin descripción"}
+                        </Text>
+                        <View style={styles.categoryMeta}>
+                          <Text style={[styles.categoryMetaText, { color: theme.colors.onSurfaceVariant }]}>
+                            Método: {category.groupingMethod.toLowerCase() === "manual" ? "Manual" : "Aleatorio"}
                           </Text>
-                        ) : (
-                          <Button
-                            mode={joined ? "contained-tonal" : "contained"}
-                            compact
-                            uppercase={false}
-                            onPress={() => handleJoinGroup(group.id)}
-                            disabled={joined || !group.isActive || membershipState.isLoading}
-                            style={styles.joinButton}
-                          >
-                            {joined ? "En curso" : "Unirme"}
-                          </Button>
-                        )}
+                          {typeof category.maxMembersPerGroup === "number" && category.maxMembersPerGroup > 0 && (
+                            <Text style={[styles.categoryMetaText, { color: theme.colors.onSurfaceVariant }]}>
+                              • Máx: {category.maxMembersPerGroup} miembros
+                            </Text>
+                          )}
+                        </View>
                       </View>
-                    )}
-                    style={styles.listItem}
-                  />
-                );
-              })}
-            </List.Section>
+                      <List.Section style={styles.groupsList}>
+                        {categoryGroups.map((group) => {
+                          const memberCount = memberCounts[group.id];
+                          const joined = joinedGroupIds.has(group.id);
+                          const isManual = category.groupingMethod.toLowerCase() === "manual";
+                          const canJoin = isManual && !joined && group.isActive;
+                          return (
+                            <List.Item
+                              key={group.id}
+                              title={group.name}
+                              description={`Creado: ${formatDate(group.createdAt)}`}
+                              descriptionNumberOfLines={2}
+                              left={(props) => <List.Icon {...props} icon="account-group" />}
+                              right={() => (
+                                <View style={styles.itemMeta}>
+                                  <Text style={[styles.itemMetaText, { color: theme.colors.onSurfaceVariant }]}>
+                                    {typeof memberCount === "number" ? `${memberCount} miembro${memberCount === 1 ? "" : "s"}` : "Sin datos"}
+                                  </Text>
+                                  {isTeacher ? (
+                                    <Text style={[styles.statusText, { color: group.isActive ? theme.colors.primary : theme.colors.onSurfaceVariant }]}>
+                                      {group.isActive ? "Activo" : "Archivado"}
+                                    </Text>
+                                  ) : (
+                                    <Button
+                                      mode={joined ? "contained-tonal" : "contained"}
+                                      compact
+                                      uppercase={false}
+                                      onPress={() => handleJoinGroup(group.id)}
+                                      disabled={!canJoin || membershipState.isLoading}
+                                      style={styles.joinButton}
+                                    >
+                                      {joined ? "Ya perteneces" : !isManual ? "Asignación automática" : "Unirme"}
+                                    </Button>
+                                  )}
+                                </View>
+                              )}
+                              style={styles.listItem}
+                            />
+                          );
+                        })}
+                      </List.Section>
+                    </View>
+                  );
+                })
+              )}
+            </View>
           )}
         </ScrollView>
         <BottomNavigationDock currentIndex={-1} />
@@ -331,5 +387,34 @@ const styles = StyleSheet.create({
   },
   joinButton: {
     marginTop: 6,
+  },
+  categorySection: {
+    marginTop: 24,
+  },
+  categoryHeader: {
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#00000011",
+  },
+  categoryTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  categorySubtitle: {
+    fontSize: 13,
+    marginBottom: 8,
+  },
+  categoryMeta: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  categoryMetaText: {
+    fontSize: 12,
+  },
+  groupsList: {
+    marginTop: 8,
   },
 });

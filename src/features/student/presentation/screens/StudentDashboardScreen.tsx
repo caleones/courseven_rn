@@ -1,3 +1,4 @@
+import { useNavigation } from "@react-navigation/native";
 import React, { useEffect } from "react";
 import { RefreshControl, SafeAreaView, ScrollView, StyleSheet, View } from "react-native";
 import { ActivityIndicator, List, Text, useTheme } from "react-native-paper";
@@ -78,6 +79,7 @@ type EnrollmentListItemProps = {
 };
 
 const EnrollmentListItem: React.FC<EnrollmentListItemProps> = ({ enrollment }) => {
+    const navigation = useNavigation<any>();
     const [, courseController] = useCourseController();
     const [courseTitle, setCourseTitle] = React.useState("Cargando...");
 
@@ -86,6 +88,10 @@ const EnrollmentListItem: React.FC<EnrollmentListItemProps> = ({ enrollment }) =
             setCourseTitle(course?.name || "Curso sin nombre");
         });
     }, [enrollment.courseId, courseController]);
+
+    const handlePress = React.useCallback(() => {
+        navigation.navigate("CourseDetail", { courseId: enrollment.courseId });
+    }, [enrollment.courseId, navigation]);
 
     return (
         <List.Item
@@ -98,6 +104,8 @@ const EnrollmentListItem: React.FC<EnrollmentListItemProps> = ({ enrollment }) =
                 minute: "2-digit",
             })}`}
             left={(props) => <List.Icon {...props} icon="school" color={GOLD} />}
+            right={(props) => <List.Icon {...props} icon="chevron-right" color={GOLD} />}
+            onPress={handlePress}
             style={styles.listItem}
         />
     );
