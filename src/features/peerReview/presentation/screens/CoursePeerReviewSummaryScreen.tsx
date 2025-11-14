@@ -171,7 +171,7 @@ const CoursePeerReviewSummaryScreen = () => {
 
     return (
       <>
-        {renderOverviewCard(summary, currentActivityIds.length, theme)}
+        {renderOverviewCard(summary, currentActivityIds.length, groups.length, theme)}
         {renderGroupsCard(summary.groups, groups, theme, handleGroupTap)}
         {consideredActivities.length > 0 && renderActivitiesSection(consideredActivities, theme)}
       </>
@@ -254,6 +254,7 @@ function weightedAverage(groups: GroupCrossActivityStats[]): ScoreAverages | nul
 function renderOverviewCard(
   summary: CoursePeerReviewSummary,
   activityCount: number,
+  totalGroupsCount: number,
   theme: any,
 ) {
   const averages = weightedAverage(summary.groups);
@@ -264,17 +265,17 @@ function renderOverviewCard(
   return (
     <SectionCard title="Panorama general" icon="insights" theme={theme}>
       <View style={styles.metricsWrap}>
-        <MetricChip label="Overall" value={averages.overall} theme={theme} />
-        <MetricChip label="Puntualidad" value={averages.punctuality} theme={theme} />
-        <MetricChip label="Contribuciones" value={averages.contributions} theme={theme} />
-        <MetricChip label="Compromiso" value={averages.commitment} theme={theme} />
-        <MetricChip label="Actitud" value={averages.attitude} theme={theme} />
+        <MetricChip label="OVERALL" value={averages.overall} theme={theme} />
+        <MetricChip label="PUNTUALIDAD" value={averages.punctuality} theme={theme} />
+        <MetricChip label="CONTRIBUCIONES" value={averages.contributions} theme={theme} />
+        <MetricChip label="COMPROMISO" value={averages.commitment} theme={theme} />
+        <MetricChip label="ACTITUD" value={averages.attitude} theme={theme} />
       </View>
       <View style={[styles.metricsWrap, { marginTop: 16 }]}>
-        <InfoChip label="Evaluaciones" value={totalAssessments.toString()} theme={theme} />
-        <InfoChip label="Grupos" value={summary.groups.length.toString()} theme={theme} />
-        <InfoChip label="Estudiantes" value={summary.students.length.toString()} theme={theme} />
-        <InfoChip label="Actividades" value={activityCount.toString()} theme={theme} />
+        <InfoChip label="EVALUACIONES" value={totalAssessments.toString()} theme={theme} />
+        <InfoChip label="GRUPOS" value={totalGroupsCount.toString()} theme={theme} />
+        <InfoChip label="ESTUDIANTES" value={summary.students.length.toString()} theme={theme} />
+        <InfoChip label="ACTIVIDADES" value={activityCount.toString()} theme={theme} />
       </View>
     </SectionCard>
   );
@@ -320,11 +321,11 @@ function renderGroupsCard(
               <Text style={[styles.groupName, { color: theme.colors.onSurface }]}>{name}</Text>
               {hasResults ? (
                 <View style={styles.groupMetrics}>
-                  <MetricChip label="Overall" value={stats.averages.overall} theme={theme} small />
-                  <MetricChip label="Puntualidad" value={stats.averages.punctuality} theme={theme} small />
-                  <MetricChip label="Contribuciones" value={stats.averages.contributions} theme={theme} small />
-                  <MetricChip label="Compromiso" value={stats.averages.commitment} theme={theme} small />
-                  <MetricChip label="Actitud" value={stats.averages.attitude} theme={theme} small />
+                  <MetricChip label="OVERALL" value={stats.averages.overall} theme={theme} small />
+                  <MetricChip label="PUNTUALIDAD" value={stats.averages.punctuality} theme={theme} small />
+                  <MetricChip label="CONTRIBUCIONES" value={stats.averages.contributions} theme={theme} small />
+                  <MetricChip label="COMPROMISO" value={stats.averages.commitment} theme={theme} small />
+                  <MetricChip label="ACTITUD" value={stats.averages.attitude} theme={theme} small />
                 </View>
               ) : (
                 <Text style={[styles.noEvaluations, { color: theme.colors.onSurfaceVariant }]}>
