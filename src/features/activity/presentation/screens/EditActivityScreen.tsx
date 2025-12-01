@@ -1,6 +1,10 @@
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
-import React, { useEffect, useState } from "react";
-import { Alert, SafeAreaView, ScrollView, StyleSheet, View } from "react-native";
+import DateTimePicker, {
+    DateTimePickerAndroid,
+    type DateTimePickerEvent,
+} from "@react-native-community/datetimepicker";
+import React, { useEffect, useMemo, useState } from "react";
+import { Alert, Platform, SafeAreaView, ScrollView, StyleSheet, View } from "react-native";
 import { Button, Switch, Text, TextInput, useTheme } from "react-native-paper";
 
 import { BottomNavigationDock } from "@/src/components/BottomNavigationDock";
@@ -28,12 +32,25 @@ export const EditActivityScreen: React.FC = () => {
     const [activity, setActivity] = useState<CourseActivity | null>(null);
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
-    const [dueDate, setDueDate] = useState<string | null>(null);
+    const [dueDate, setDueDate] = useState<Date | null>(null);
+    const [showIOSPicker, setShowIOSPicker] = useState(false);
     const [isActive, setIsActive] = useState(true);
     const [reviewing, setReviewing] = useState(false);
     const [privateReview, setPrivateReview] = useState(false);
     const [loading, setLoading] = useState(false);
     const [isTeacher, setIsTeacher] = useState(false);
+
+    const formattedDueDate = useMemo(() => {
+        if (!dueDate) {
+            return "Sin fecha límite";
+        }
+        return dueDate.toLocaleDateString("es-ES", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+        });
+    }, [dueDate]);
 
     useEffect(() => {
         activityController.loadByCourse(courseId);
@@ -52,12 +69,41 @@ export const EditActivityScreen: React.FC = () => {
             setActivity(foundActivity);
             setTitle(foundActivity.title);
             setDescription(foundActivity.description || "");
-            setDueDate(foundActivity.dueDate);
+            setDueDate(foundActivity.dueDate ? new Date(foundActivity.dueDate) : null);
             setIsActive(foundActivity.isActive);
             setReviewing(foundActivity.reviewing || false);
             setPrivateReview(foundActivity.privateReview || false);
         }
     }, [activityState.activitiesByCourse, courseId, activityId]);
+
+    const handleDatePick = () => {
+        const baseDate = dueDate ?? new Date();
+        if (Platform.OS === "android") {
+            DateTimePickerAndroid.open({
+                mode: "date",
+                value: baseDate,
+                minimumDate: new Date(),
+                onChange: (_event, selectedDate) => {
+                    if (selectedDate) {
+                        setDueDate(selectedDate);
+                    }
+                },
+            });
+            return;
+        }
+        setShowIOSPicker(true);
+    };
+
+    const handleIOSDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+        if (event.type === "dismissed") {
+            setShowIOSPicker(false);
+            return;
+        }
+        if (selectedDate) {
+            setDueDate(selectedDate);
+        }
+        setShowIOSPicker(false);
+    };
 
     const handleSubmit = async () => {
         if (!activity) return;
@@ -72,9 +118,10 @@ export const EditActivityScreen: React.FC = () => {
                 ...activity,
                 title: title.trim(),
                 description: description.trim() || null,
-                dueDate,
+                dueDate: dueDate ? dueDate.toISOString() : null,
                 isActive,
-                privateReview: reviewing ? privateReview : activity.privateReview,
+                reviewing,
+                privateReview: reviewing ? privateReview : false,
             };
 
             const result = await activityController.updateActivity(updated);
@@ -147,52 +194,70 @@ export const EditActivityScreen: React.FC = () => {
                     />
 
                     <View style={styles.dateRow}>
-                        <Text variant="bodyMedium">
-                            {dueDate ? `Vence: ${new Date(dueDate).toLocaleDateString("es-ES")}` : "Sin fecha límite"}
+                        <Text variant="bodyMedium" style={{ flex: 1 }}>
+                            {formattedDueDate}
                         </Text>
-                        <Button
-                            icon="calendar"
-                            mode="text"
-                            onPress={() => Alert.alert("Fecha", "DatePicker pendiente")}
-                        >
-                            Elegir fecha
-                        </Button>
+                        <View style={styles.dateButtons}>
+                            {dueDate ? (
+                                <Button mode="text" onPress={() => setDueDate(null)}>
+                                    Quitar
+                                </Button>
+                            ) : null}
+                            <Button icon="calendar" mode="text" onPress={handleDatePick}>
+                                Elegir fecha
+                            </Button>
+                        </View>
                     </View>
+                    {Platform.OS === "ios" && showIOSPicker ? (
+                        <DateTimePicker
+                            mode="date"
+                            display="spinner"
+                            value={dueDate ?? new Date()}
+                            minimumDate={new Date()}
+                            onChange={(event, selectedDate) => {
+                                handleIOSDateChange(event, selectedDate ?? undefined);
+                            }}
+                            style={styles.iosPicker}
+                        />
+                    ) : null}
 
                     <View style={styles.switchRow}>
                         <Text variant="bodyLarge">Actividad activa</Text>
                         <Switch value={isActive} onValueChange={setIsActive} color={GOLD} />
                     </View>
 
-                    {reviewing ? (
-                        <>
-                            <View style={styles.switchRow}>
-                                <View style={{ flex: 1 }}>
-                                    <Text variant="bodyLarge">Resultados privados (solo profesor)</Text>
-                                    <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                                        Si está desactivado los estudiantes verán sus resultados cuando completen
-                                        todas sus evaluaciones.
-                                    </Text>
-                                </View>
-                                <Switch value={privateReview} onValueChange={setPrivateReview} color={GOLD} />
-                            </View>
-                            <Text variant="labelMedium" style={{ marginTop: 8 }}>
-                                Peer review activo
-                            </Text>
-                        </>
-                    ) : (
-                        <View style={styles.infoBox}>
-                            <View style={styles.infoHeader}>
-                                <Text variant="titleSmall" style={styles.infoTitle}>
-                                    Peer Review no activado
+                    <View style={styles.peerReviewBox}>
+                        <View style={styles.switchRow}>
+                            <View style={{ flex: 1 }}>
+                                <Text variant="bodyLarge">Peer Review</Text>
+                                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                                    Controla si los estudiantes pueden evaluarse entre sí.
                                 </Text>
                             </View>
-                            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                                Al activar peer review desde el detalle de la actividad, por defecto será público
-                                salvo que elijas hacerlo privado.
-                            </Text>
+                            <Switch value={reviewing} onValueChange={setReviewing} color={GOLD} />
                         </View>
-                    )}
+
+                        <View style={styles.switchRow}>
+                            <View style={{ flex: 1 }}>
+                                <Text variant="bodyLarge">Resultados privados (solo profesor)</Text>
+                                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                                    Si está desactivado, los estudiantes verán sus resultados al finalizar.
+                                </Text>
+                            </View>
+                            <Switch
+                                value={privateReview}
+                                onValueChange={setPrivateReview}
+                                disabled={!reviewing}
+                                color={GOLD}
+                            />
+                        </View>
+
+                        {!reviewing ? (
+                            <Text style={{ color: theme.colors.onSurfaceVariant, marginTop: 4 }}>
+                                Activa peer review para habilitar las evaluaciones de los estudiantes.
+                            </Text>
+                        ) : null}
+                    </View>
 
                     <Button
                         mode="contained"
@@ -251,14 +316,32 @@ const styles = StyleSheet.create({
     dateRow: {
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "space-between",
         marginVertical: 12,
+    },
+    dateButtons: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+    },
+    iosPicker: {
+        marginTop: 8,
+        backgroundColor: "#1F1F1F",
+        borderRadius: 12,
     },
     switchRow: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
         marginVertical: 12,
+    },
+    peerReviewBox: {
+        marginTop: 12,
+        padding: 16,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: `${GOLD}55`,
+        backgroundColor: "#1F1F1F",
+        gap: 12,
     },
     infoBox: {
         backgroundColor: "#333333",
