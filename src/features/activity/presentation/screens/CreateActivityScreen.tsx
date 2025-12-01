@@ -1,7 +1,11 @@
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
-import React, { useEffect, useState } from "react";
-import { Alert, SafeAreaView, ScrollView, StyleSheet, View } from "react-native";
-import { Button, Chip, HelperText, Text, TextInput, useTheme } from "react-native-paper";
+import DateTimePicker, {
+    DateTimePickerAndroid,
+    type DateTimePickerEvent,
+} from "@react-native-community/datetimepicker";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Alert, Platform, SafeAreaView, ScrollView, StyleSheet, View } from "react-native";
+import { Button, Chip, HelperText, Switch, Text, TextInput, useTheme } from "react-native-paper";
 
 import { BottomNavigationDock } from "@/src/components/BottomNavigationDock";
 import { useActivityController } from "@/src/features/activity/hooks/useActivityController";
@@ -38,8 +42,11 @@ export const CreateActivityScreen: React.FC = () => {
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(initialCategoryId);
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
-    const [dueDate] = useState<Date | undefined>(undefined);
+    const [dueDate, setDueDate] = useState<Date | null>(null);
+    const [showIOSPicker, setShowIOSPicker] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [enablePeerReview, setEnablePeerReview] = useState(true);
+    const [privateReview, setPrivateReview] = useState(false);
 
     const [titleError, setTitleError] = useState("");
     const [courseError, setCourseError] = useState("");
@@ -48,12 +55,20 @@ export const CreateActivityScreen: React.FC = () => {
     const teacherCourses = courseState.teacherCourses || [];
     const categoriesByCourse = categoryState.categoriesByCourse || {};
 
+    const coursesLoadedOnce = useRef(false);
+
     useEffect(() => {
-        courseController.loadMyTeachingCourses();
+        if (!coursesLoadedOnce.current) {
+            coursesLoadedOnce.current = true;
+            void courseController.loadMyTeachingCourses();
+        }
+    }, [courseController]);
+
+    useEffect(() => {
         if (selectedCourseId) {
             categoryController.loadByCourse(selectedCourseId);
         }
-    }, [selectedCourseId, courseController, categoryController]);
+    }, [selectedCourseId, categoryController]);
 
     const handleCourseChange = (courseId: string) => {
         if (lockCourse) return;
@@ -97,8 +112,8 @@ export const CreateActivityScreen: React.FC = () => {
                 categoryId: selectedCategoryId!,
                 courseId: selectedCourseId!,
                 dueDate: dueDate ? dueDate.toISOString() : null,
-                reviewing: false,
-                privateReview: false,
+                reviewing: enablePeerReview,
+                privateReview: enablePeerReview ? privateReview : false,
             });
 
             if (created) {
@@ -113,8 +128,45 @@ export const CreateActivityScreen: React.FC = () => {
     };
 
     const handleDatePick = () => {
-        Alert.alert("Fecha límite", "Integración de DatePicker pendiente");
+        const baseDate = dueDate ?? new Date();
+        if (Platform.OS === "android") {
+            DateTimePickerAndroid.open({
+                mode: "date",
+                value: baseDate,
+                minimumDate: new Date(),
+                onChange: (_event, selectedDate) => {
+                    if (selectedDate) {
+                        setDueDate(selectedDate);
+                    }
+                },
+            });
+            return;
+        }
+        setShowIOSPicker(true);
     };
+
+    const handleIOSDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+        if (event.type === "dismissed") {
+            setShowIOSPicker(false);
+            return;
+        }
+        if (selectedDate) {
+            setDueDate(selectedDate);
+        }
+        setShowIOSPicker(false);
+    };
+
+    const formattedDueDate = useMemo(() => {
+        if (!dueDate) {
+            return "Sin fecha límite";
+        }
+        return dueDate.toLocaleDateString("es-ES", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+        });
+    }, [dueDate]);
 
     const currentCategories = selectedCourseId ? (categoriesByCourse[selectedCourseId] || []) : [];
 
@@ -211,13 +263,59 @@ export const CreateActivityScreen: React.FC = () => {
 
                         <View style={styles.dateRow}>
                             <Text variant="bodyMedium" style={{ flex: 1 }}>
-                                {dueDate
-                                    ? `Vence: ${dueDate.toLocaleDateString("es-ES")}`
-                                    : "Sin fecha límite"}
+                                {formattedDueDate}
                             </Text>
-                            <Button icon="calendar" mode="text" onPress={handleDatePick}>
-                                Elegir fecha
-                            </Button>
+                            <View style={styles.dateButtons}>
+                                {dueDate ? (
+                                    <Button mode="text" onPress={() => setDueDate(null)}>
+                                        Quitar
+                                    </Button>
+                                ) : null}
+                                <Button icon="calendar" mode="text" onPress={handleDatePick}>
+                                    Elegir fecha
+                                </Button>
+                            </View>
+                        </View>
+                        {Platform.OS === "ios" && showIOSPicker ? (
+                            <DateTimePicker
+                                mode="date"
+                                display="spinner"
+                                value={dueDate ?? new Date()}
+                                minimumDate={new Date()}
+                                onChange={(event, selectedDate) => {
+                                    handleIOSDateChange(event, selectedDate ?? undefined);
+                                }}
+                                style={styles.iosPicker}
+                            />
+                        ) : null}
+
+                        <View style={styles.peerReviewBox}>
+                            <View style={styles.peerReviewRow}>
+                                <Text variant="bodyLarge" style={{ flex: 1 }}>
+                                    Activar Peer Review
+                                </Text>
+                                <Switch
+                                    value={enablePeerReview}
+                                    onValueChange={setEnablePeerReview}
+                                    color={GOLD}
+                                />
+                            </View>
+                            {enablePeerReview ? (
+                                <View style={styles.peerReviewRow}>
+                                    <Text variant="bodyMedium" style={{ flex: 1 }}>
+                                        Resultados privados (solo profesor)
+                                    </Text>
+                                    <Switch
+                                        value={privateReview}
+                                        onValueChange={setPrivateReview}
+                                        color={GOLD}
+                                    />
+                                </View>
+                            ) : (
+                                <Text style={{ color: theme.colors.onSurfaceVariant }}>
+                                    Activa peer review para que tus estudiantes puedan calificar entre sí.
+                                </Text>
+                            )}
                         </View>
 
                         <Button
@@ -296,6 +394,29 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         marginTop: 12,
+    },
+    dateButtons: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    iosPicker: {
+        marginTop: 8,
+        backgroundColor: "#1F1F1F",
+        borderRadius: 12,
+    },
+    peerReviewBox: {
+        marginTop: 12,
+        padding: 16,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: `${GOLD}40`,
+        backgroundColor: "#1F1F1F",
+        gap: 12,
+    },
+    peerReviewRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
     },
     submitButton: {
         marginTop: 24,

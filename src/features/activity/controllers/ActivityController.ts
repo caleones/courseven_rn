@@ -253,10 +253,6 @@ export class ActivityController {
     reviewing?: boolean;
     privateReview?: boolean;
   }): Promise<CourseActivity | null> {
-    if (this.state.isLoading) {
-      return null;
-    }
-
     const userId = await this.getCurrentUserId();
     if (!userId) {
       this.setError("Usuario no autenticado");

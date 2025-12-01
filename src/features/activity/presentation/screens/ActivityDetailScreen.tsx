@@ -1,10 +1,12 @@
 import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshControl, SafeAreaView, ScrollView, StyleSheet, View } from "react-native";
+import { Alert, RefreshControl, SafeAreaView, ScrollView, StyleSheet, View } from "react-native";
 import { ActivityIndicator, Button, Chip, IconButton, Text, useTheme } from "react-native-paper";
 
 import { BottomNavigationDock } from "@/src/components/BottomNavigationDock";
+import { Course } from "@/src/domain/models/Course";
 import { CourseActivity } from "@/src/domain/models/CourseActivity";
+import { useAuth } from "@/src/features/auth/presentation/context/authContext";
 import { useActivityController } from "@/src/features/activity/hooks/useActivityController";
 import { useCategoryController } from "@/src/features/category/hooks/useCategoryController";
 import { useCourseController } from "@/src/features/course/hooks/useCourseController";
@@ -45,13 +47,16 @@ export const ActivityDetailScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute();
   const { courseId, activityId } = (route.params ?? {}) as RouteParams;
+  const { user } = useAuth();
 
   const [activityState, activityController] = useActivityController();
   const [categoryState, categoryController] = useCategoryController();
   const [, courseController] = useCourseController();
 
   const [activity, setActivity] = useState<CourseActivity | null>(null);
+  const [course, setCourse] = useState<Course | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [updatingPeerReview, setUpdatingPeerReview] = useState(false);
 
   const category = useMemo(() => {
     if (!courseId || !activity?.categoryId) return null;
@@ -64,6 +69,7 @@ export const ActivityDetailScreen: React.FC = () => {
       await Promise.all([
         categoryController.loadByCourse(courseId, { force }),
         activityController.loadForStudent(courseId, { force }),
+        activityController.loadByCourse(courseId, { force }),
       ]);
       const loadedActivity = await activityController.getActivityById(activityId);
       if (loadedActivity) {
@@ -95,6 +101,24 @@ export const ActivityDetailScreen: React.FC = () => {
       }
     }
   }, [activityState.studentActivitiesByCourse, activityId, courseId]);
+
+  useEffect(() => {
+    if (activityState.activitiesByCourse[courseId]) {
+      const found = activityState.activitiesByCourse[courseId].find((a) => a.id === activityId);
+      if (found) {
+        setActivity(found);
+      }
+    }
+  }, [activityState.activitiesByCourse, activityId, courseId]);
+
+  useEffect(() => {
+    if (!courseId) return;
+    courseController.getCourseById(courseId).then((data) => {
+      if (data) {
+        setCourse(data);
+      }
+    });
+  }, [courseController, courseId]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -134,6 +158,30 @@ export const ActivityDetailScreen: React.FC = () => {
   const isActive = activity.isActive;
   const description = activity.description?.trim() || "No tiene descripción";
   const hasPeerReview = activity.reviewing ?? false;
+  const isTeacher = course?.teacherId && user?.id ? course.teacherId === user.id : false;
+  const peerReviewStatus = hasPeerReview ? "Activo" : "Inactivo";
+  const peerReviewColor = hasPeerReview ? "#4CAF50" : "#F44336";
+  const canCalificar = hasPeerReview && !isTeacher;
+
+  const handleEnablePeerReview = useCallback(async () => {
+    if (!activity) return;
+    setUpdatingPeerReview(true);
+    try {
+      const updated = await activityController.updateActivity({
+        ...activity,
+        reviewing: true,
+        privateReview: false,
+      });
+      if (updated) {
+        setActivity(updated);
+        Alert.alert("Peer Review activado", "Los estudiantes ya pueden evaluarse en esta actividad.");
+      }
+    } catch (error) {
+      Alert.alert("Error", "No se pudo activar el Peer Review. Intenta nuevamente.");
+    } finally {
+      setUpdatingPeerReview(false);
+    }
+  }, [activity, activityController]);
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
@@ -197,6 +245,19 @@ export const ActivityDetailScreen: React.FC = () => {
             >
               ESTADO: {isActive ? "Activo" : "Inactivo"}
             </Chip>
+
+            <Chip
+              icon="account-group"
+              style={[
+                styles.tag,
+                {
+                  backgroundColor: peerReviewColor,
+                },
+              ]}
+              textStyle={{ color: "#FFFFFF" }}
+            >
+              PEER REVIEW: {peerReviewStatus}
+            </Chip>
           </View>
 
           {/* Descripción */}
@@ -206,7 +267,7 @@ export const ActivityDetailScreen: React.FC = () => {
           </View>
 
           {/* Peer Review */}
-          {hasPeerReview && (
+          {canCalificar && (
             <View style={styles.section}>
               <View style={styles.peerReviewHeader}>
                 <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Peer Review</Text>
@@ -223,7 +284,7 @@ export const ActivityDetailScreen: React.FC = () => {
           )}
 
           {/* Mis Resultados */}
-          {hasPeerReview && (
+          {!isTeacher && hasPeerReview && (
             <View style={styles.section}>
               <Button
                 mode="contained-tonal"
@@ -234,6 +295,32 @@ export const ActivityDetailScreen: React.FC = () => {
               >
                 MIS RESULTADOS
               </Button>
+            </View>
+          )}
+
+          {isTeacher && (
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Peer Review</Text>
+              <Text style={[styles.descriptionText, { color: theme.colors.onSurfaceVariant, marginBottom: 12 }]}>
+                {hasPeerReview
+                  ? "Los estudiantes ya pueden calificar esta actividad."
+                  : "Activa el peer review para habilitar las evaluaciones entre estudiantes."}
+              </Text>
+              {hasPeerReview ? (
+                <Chip icon="check" style={[styles.tag, { backgroundColor: peerReviewColor }]} textStyle={{ color: "#FFF" }}>
+                  Peer review activo
+                </Chip>
+              ) : (
+                <Button
+                  mode="contained"
+                  onPress={handleEnablePeerReview}
+                  loading={updatingPeerReview}
+                  disabled={updatingPeerReview}
+                  style={styles.calificarButton}
+                >
+                  ACTIVAR PEER REVIEW
+                </Button>
+              )}
             </View>
           )}
         </ScrollView>

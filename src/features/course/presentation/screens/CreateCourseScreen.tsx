@@ -1,5 +1,5 @@
 import { useNavigation } from "@react-navigation/native";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     Alert,
     KeyboardAvoidingView,
@@ -41,10 +41,24 @@ export default function CreateCourseScreen() {
   const [touched, setTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const initialLoadRequested = useRef(false);
+
   useEffect(() => {
-    if (courseState.teacherCourses.length === 0 && !courseState.isLoading) {
-      void courseController.loadMyTeachingCourses({ force: true });
+    if (initialLoadRequested.current) {
+      return;
     }
+
+    if (courseState.isLoading) {
+      return;
+    }
+
+    initialLoadRequested.current = true;
+
+    if (courseState.teacherCourses.length > 0) {
+      return;
+    }
+
+    void courseController.loadMyTeachingCourses({ force: true });
   }, [courseController, courseState.isLoading, courseState.teacherCourses.length]);
 
   const activeCourses = useMemo(
