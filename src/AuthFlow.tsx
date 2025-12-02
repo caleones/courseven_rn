@@ -36,6 +36,8 @@ import NotificationsScreen from "./features/notifications/presentation/screens/N
 import CoursePeerReviewSummaryScreen from "./features/peerReview/presentation/screens/CoursePeerReviewSummaryScreen";
 import { PeerReviewSelectGroupScreen } from "./features/peerReview/presentation/screens/PeerReviewSelectGroupScreen";
 import { PeerReviewGroupSummaryScreen } from "./features/peerReview/presentation/screens/PeerReviewGroupSummaryScreen";
+import EditCourseScreen from "./features/course/presentation/screens/EditCourseScreen";
+import EditGroupScreen from "./features/group/presentation/screens/EditGroupScreen";
 import AddProductScreen from "./features/products/presentation/screens/AddProductScreen";
 import UpdateProductScreen from "./features/products/presentation/screens/UpdateProductScreen";
 import SettingScreen from "./features/settings/SettingScreen";
@@ -204,6 +206,24 @@ export default function AuthFlow() {
               presentation: 'modal' // Optional: makes it slide up from bottom
             }}
           />
+        <Stack.Screen
+          name="EditCourse"
+          component={EditCourseScreen}
+          options={{
+            title: "Editar curso",
+            headerShown: false,
+            presentation: "modal",
+          }}
+        />
+        <Stack.Screen
+          name="EditGroup"
+          component={EditGroupScreen}
+          options={{
+            title: "Editar grupo",
+            headerShown: false,
+            presentation: "modal",
+          }}
+        />
           <Stack.Screen
             name="CreateActivity"
             component={CreateActivityScreen}

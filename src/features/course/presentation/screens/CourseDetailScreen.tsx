@@ -375,12 +375,10 @@ export default function CourseDetailScreen() {
 	}, [navigation]);
 
 	const handleEditCourse = useCallback(() => {
-		if (!courseId || !course) return;
-		Alert.alert(
-			"Editar curso",
-			"La edición del curso estará disponible próximamente en esta versión.",
-		);
-	}, [course, courseId]);
+    if (!courseId || !course) return;
+    // Navega a la pantalla de edición del curso con el identificador actual
+    navigation.navigate("EditCourse", { courseId });
+  }, [course, courseId, navigation]);
 
 	const handleEnableCourse = useCallback(() => {
 		if (!courseId || !isTeacher) return;

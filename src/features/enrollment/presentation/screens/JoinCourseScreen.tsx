@@ -64,7 +64,7 @@ export default function JoinCourseScreen() {
       Alert.alert("¡Te uniste al curso!", "Inscripción creada correctamente", [
         {
           text: "Aceptar",
-          onPress: () => navigation.navigate("App", { screen: "Home" }),
+          onPress: () => navigation.navigate("Home"),
         },
       ]);
       setCode("");

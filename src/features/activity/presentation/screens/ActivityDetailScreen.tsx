@@ -139,12 +139,36 @@ export const ActivityDetailScreen: React.FC = () => {
     navigation.navigate("PeerReviewMisResultados", { courseId, activityId });
   }, [courseId, activityId, navigation]);
 
+  
+  const handleEnablePeerReview = useCallback(async () => {
+    if (!activity) return;
+    setUpdatingPeerReview(true);
+    try {
+      const updated = await activityController.updateActivity({
+        ...activity,
+        reviewing: true,
+        privateReview: false,
+      });
+      if (updated) {
+        setActivity(updated);
+        Alert.alert(
+          "Peer Review activado",
+          "Los estudiantes ya pueden evaluarse en esta actividad.",
+        );
+      }
+    } catch (error) {
+      Alert.alert("Error", "No se pudo activar el Peer Review. Intenta nuevamente.");
+    } finally {
+      setUpdatingPeerReview(false);
+    }
+  }, [activity, activityController]);
+
   if (!activity) {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}> 
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" />
-          <Text style={[styles.loadingText, { color: theme.colors.onSurfaceVariant }]}>
+          <Text style={[styles.loadingText, { color: theme.colors.onSurfaceVariant }]}> 
             Cargando actividad...
           </Text>
         </View>
@@ -163,25 +187,6 @@ export const ActivityDetailScreen: React.FC = () => {
   const peerReviewColor = hasPeerReview ? "#4CAF50" : "#F44336";
   const canCalificar = hasPeerReview && !isTeacher;
 
-  const handleEnablePeerReview = useCallback(async () => {
-    if (!activity) return;
-    setUpdatingPeerReview(true);
-    try {
-      const updated = await activityController.updateActivity({
-        ...activity,
-        reviewing: true,
-        privateReview: false,
-      });
-      if (updated) {
-        setActivity(updated);
-        Alert.alert("Peer Review activado", "Los estudiantes ya pueden evaluarse en esta actividad.");
-      }
-    } catch (error) {
-      Alert.alert("Error", "No se pudo activar el Peer Review. Intenta nuevamente.");
-    } finally {
-      setUpdatingPeerReview(false);
-    }
-  }, [activity, activityController]);
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>

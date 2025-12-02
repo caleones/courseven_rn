@@ -271,13 +271,33 @@ const CourseGroupsScreen = () => {
                               left={(props) => <List.Icon {...props} icon="account-group" />}
                               right={() => (
                                 <View style={styles.itemMeta}>
-                                  <Text style={[styles.itemMetaText, { color: theme.colors.onSurfaceVariant }]}>
+                                  <Text style={[styles.itemMetaText, { color: theme.colors.onSurfaceVariant }]}> 
                                     {typeof memberCount === "number" ? `${memberCount} miembro${memberCount === 1 ? "" : "s"}` : "Sin datos"}
                                   </Text>
                                   {isTeacher ? (
-                                    <Text style={[styles.statusText, { color: group.isActive ? theme.colors.primary : theme.colors.onSurfaceVariant }]}>
-                                      {group.isActive ? "Activo" : "Archivado"}
-                                    </Text>
+                                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                                      <Text
+                                        style={[
+                                          styles.statusText,
+                                          { color: group.isActive ? theme.colors.primary : theme.colors.onSurfaceVariant },
+                                        ]}
+                                      >
+                                        {group.isActive ? "Activo" : "Archivado"}
+                                      </Text>
+                                      <IconButton
+                                        icon="pencil"
+                                        size={20}
+                                        onPress={() =>
+                                          navigation.navigate("EditGroup", {
+                                            groupId: group.id,
+                                            courseId,
+                                            categoryId: group.categoryId,
+                                          })
+                                        }
+                                        accessibilityLabel="Editar grupo"
+                                        style={{ marginLeft: 8 }}
+                                      />
+                                    </View>
                                   ) : (
                                     <Button
                                       mode={joined ? "contained-tonal" : "contained"}
