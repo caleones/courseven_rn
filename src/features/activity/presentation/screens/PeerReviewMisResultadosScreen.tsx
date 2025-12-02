@@ -11,6 +11,7 @@ import { useActivityController } from "@/src/features/activity/hooks/useActivity
 import { useAuth } from "@/src/features/auth/presentation/context/authContext";
 import { useGroupController } from "@/src/features/group/hooks/useGroupController";
 import { useAssessmentRepository } from "@/src/data/repositories/hooks/useAssessmentRepository";
+import useComputeActivitySummary from "@/src/features/peerReview/hooks/useComputeActivitySummary";
 import { useDI } from "@/src/core/di/DIProvider";
 import { TOKENS } from "@/src/core/di/tokens";
 import { MembershipRepository } from "@/src/domain/repositories/MembershipRepository";
@@ -34,6 +35,7 @@ export const PeerReviewMisResultadosScreen: React.FC = () => {
   const assessmentRepository = useAssessmentRepository();
   const di = useDI();
   const membershipRepository = di.resolve<MembershipRepository>(TOKENS.MembershipRepository);
+  const { execute: computeActivitySummary } = useComputeActivitySummary();
 
   const [activity, setActivity] = useState<CourseActivity | null>(null);
   const [groupAverages, setGroupAverages] = useState<ScoreAverages | null>(null);
@@ -69,8 +71,8 @@ export const PeerReviewMisResultadosScreen: React.FC = () => {
           });
 
           if (myGroupForCategory) {
-            // Calcular el resumen de la actividad para obtener promedios del grupo
-            const activitySummary = await assessmentRepository.computeActivitySummary(activityId);
+            // Calcular el resumen de la actividad para obtener promedios del grupo (usecase)
+            const activitySummary = await computeActivitySummary(activityId);
             const groupStats = activitySummary.groups.find((g) => g.groupId === myGroupForCategory.id);
             if (groupStats) {
               setGroupAverages(groupStats.averages);
@@ -101,6 +103,7 @@ export const PeerReviewMisResultadosScreen: React.FC = () => {
       activityId,
       membershipRepository,
       user?.id,
+      computeActivitySummary,
     ],
   );
 

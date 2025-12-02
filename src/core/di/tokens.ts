@@ -33,6 +33,8 @@ export const TOKENS = {
   MembershipRepository: Symbol("MembershipRepository"),
   CourseActivityRepository: Symbol("CourseActivityRepository"),
   AssessmentRepository: Symbol("AssessmentRepository"),
+  ComputeCourseSummaryUC: Symbol("ComputeCourseSummaryUC"),
+  ComputeActivitySummaryUC: Symbol("ComputeActivitySummaryUC"),
   CreateCourseUC: Symbol("CreateCourseUC"),
   CreateCategoryUC: Symbol("CreateCategoryUC"),
   CreateGroupUC: Symbol("CreateGroupUC"),
