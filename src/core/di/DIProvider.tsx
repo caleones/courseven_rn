@@ -82,9 +82,20 @@ export function DIProvider({ children }: { children: React.ReactNode }) {
 
         const createCourseUseCase = new CreateCourseUseCase(courseRepository);
         const createCategoryUseCase = new CreateCategoryUseCase(categoryRepository);
-        const createGroupUseCase = new CreateGroupUseCase(groupRepository);
+        const createGroupUseCase = new CreateGroupUseCase(
+            groupRepository,
+            categoryRepository,
+            enrollmentRepository,
+            membershipRepository,
+        );
         const getMyEnrollmentsUseCase = new GetMyEnrollmentsUseCase(enrollmentRepository);
-        const enrollToCourseUseCase = new EnrollToCourseUseCase(enrollmentRepository, courseRepository);
+        const enrollToCourseUseCase = new EnrollToCourseUseCase(
+            enrollmentRepository,
+            courseRepository,
+            categoryRepository,
+            groupRepository,
+            membershipRepository,
+        );
         const joinGroupUseCase = new JoinGroupUseCase(membershipRepository, groupRepository, categoryRepository);
         const getCourseActivitiesForStudentUseCase = new GetCourseActivitiesForStudentUseCase(
             activityRepository,

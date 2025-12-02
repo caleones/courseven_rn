@@ -73,21 +73,19 @@ export class EnrollmentRepositoryImpl implements EnrollmentRepository {
     const token = await this.requireToken();
     const rows = await this.service.readEnrollments({
       accessToken: token,
-      query: { course_id: courseId, is_active: "true" },
+      query: { course_id: courseId },
     });
-    return rows.map((row) => mapEnrollmentRecordToEntity(ensureEnrollmentRecord(row)));
+    return rows
+      .map((row) => mapEnrollmentRecordToEntity(ensureEnrollmentRecord(row)))
+      .filter((enrollment) => enrollment.isActive);
   }
 
   async isStudentEnrolledInCourse(
     studentId: string,
     courseId: string,
   ): Promise<boolean> {
-    const token = await this.requireToken();
-    const rows = await this.service.readEnrollments({
-      accessToken: token,
-      query: { user_id: studentId, course_id: courseId, is_active: "true" },
-    });
-    return rows.length > 0;
+    const enrollments = await this.getEnrollmentsByCourse(courseId);
+    return enrollments.some((enrollment) => enrollment.studentId === studentId);
   }
 
   async deleteEnrollment(): Promise<boolean> {
@@ -131,12 +129,8 @@ export class EnrollmentRepositoryImpl implements EnrollmentRepository {
   }
 
   async getEnrollmentCountByCourse(courseId: string): Promise<number> {
-    const token = await this.requireToken();
-    const rows = await this.service.readEnrollments({
-      accessToken: token,
-      query: { course_id: courseId, is_active: "true" },
-    });
-    return rows.length;
+    const list = await this.getEnrollmentsByCourse(courseId);
+    return list.length;
   }
 
   async getEnrollmentCountByStudent(studentId: string): Promise<number> {
