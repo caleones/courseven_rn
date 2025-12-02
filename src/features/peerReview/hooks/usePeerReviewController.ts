@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useReducer } from "react";
 
-import { useAssessmentRepository } from "@/src/data/repositories/hooks/useAssessmentRepository";
+import useComputeCourseSummary from "@/src/features/peerReview/hooks/useComputeCourseSummary";
 import { CoursePeerReviewSummary } from "@/src/domain/models/PeerReviewSummaries";
 
 type PeerReviewState = {
@@ -43,7 +43,7 @@ function reducer(state: PeerReviewState, action: Action): PeerReviewState {
 
 export function usePeerReviewController() {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const assessmentRepository = useAssessmentRepository();
+  const { execute: computeCourseSummary } = useComputeCourseSummary();
 
   const loadCourseSummary = useCallback(
     async (courseId: string, activityIds: string[], force = false) => {
@@ -56,7 +56,7 @@ export function usePeerReviewController() {
       dispatch({ type: "SET_ERROR", payload: null });
 
       try {
-        const summary = await assessmentRepository.computeCourseSummary(activityIds);
+        const summary = await computeCourseSummary(activityIds);
         dispatch({
           type: "SET_COURSE_SUMMARY",
           payload: { courseId, summary },
@@ -66,7 +66,7 @@ export function usePeerReviewController() {
         dispatch({ type: "SET_ERROR", payload: error?.message ?? "Error cargando resumen" });
       }
     },
-    [assessmentRepository, state.courseSummaries],
+    [computeCourseSummary, state.courseSummaries],
   );
 
   const controller = useMemo(

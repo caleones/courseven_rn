@@ -12,7 +12,7 @@ import {
 import ComputeCourseSummaryUseCase from "@/src/features/peerReview/domain/usecases/ComputeCourseSummaryUseCase";
 import ComputeActivitySummaryUseCase from "@/src/features/peerReview/domain/usecases/ComputeActivitySummaryUseCase";
 
-export class AssessmentRepository {
+export class AssessmentRepositoryImpl {
   private robleService: RobleService;
   private getAccessToken?: () => Promise<string | null>;
 
@@ -236,9 +236,6 @@ export class AssessmentRepository {
     
     return peers.filter((p) => !doneIds.has(p));
   }
-
-  // The heavy aggregation logic was moved to domain usecases. Keep these methods
-  // delegating to the usecases so existing callers keep working while the codebase
-  // migrates to use the usecases directly.
-  
 }
+
+export default AssessmentRepositoryImpl;

@@ -47,6 +47,9 @@ import { DeleteProductUseCase } from "@/src/features/products/domain/usecases/De
 import { GetProductByIdUseCase } from "@/src/features/products/domain/usecases/GetProductByIdUseCase";
 import { GetProductsUseCase } from "@/src/features/products/domain/usecases/GetProductsUseCase";
 import { UpdateProductUseCase } from "@/src/features/products/domain/usecases/UpdateProductUseCase";
+import AssessmentRepositoryImpl from "@/src/features/peerReview/data/AssessmentRepositoryImpl";
+import ComputeCourseSummaryUseCase from "@/src/features/peerReview/domain/usecases/ComputeCourseSummaryUseCase";
+import ComputeActivitySummaryUseCase from "@/src/features/peerReview/domain/usecases/ComputeActivitySummaryUseCase";
 
 const DIContext = createContext<Container | null>(null);
 
@@ -148,12 +151,16 @@ export function DIProvider({ children }: { children: React.ReactNode }) {
             getCurrentUserId,
         });
 
+        const assessmentRepository = new AssessmentRepositoryImpl(robleService, { getAccessToken });
+        const computeCourseSummaryUC = new ComputeCourseSummaryUseCase(assessmentRepository as any);
+        const computeActivitySummaryUC = new ComputeActivitySummaryUseCase(assessmentRepository as any);
+
         c.register(TOKENS.AuthRemoteDS, authRemoteDS)
             .register(TOKENS.AuthLocalDS, authLocalDS)
             .register(TOKENS.AuthRepo, authRepo)
             .register(TOKENS.LoginUC, new LoginUseCase(authRepo))
             .register(TOKENS.SignupUC, new SignupUseCase(authRepo))
-            .register(TOKENS.VerifyEmailUC, new VerifyEmailUseCase(authRepo))
+            .register(TOKENS.VerifyEmailUC, new VerifyEmailUseCase(authRemoteDS, authLocalDS))
             .register(TOKENS.LogoutUC, new LogoutUseCase(authRepo))
             .register(TOKENS.GetCurrentUserUC, new GetCurrentUserUseCase(authRepo))
             .register(TOKENS.RequestPasswordResetUC, new RequestPasswordResetUseCase(authRepo))
@@ -172,6 +179,9 @@ export function DIProvider({ children }: { children: React.ReactNode }) {
             .register(TOKENS.UserRepository, userRepository)
             .register(TOKENS.MembershipRepository, membershipRepository)
             .register(TOKENS.CourseActivityRepository, activityRepository)
+            .register(TOKENS.AssessmentRepository, assessmentRepository)
+            .register(TOKENS.ComputeCourseSummaryUC, computeCourseSummaryUC)
+            .register(TOKENS.ComputeActivitySummaryUC, computeActivitySummaryUC)
             .register(TOKENS.CreateCourseUC, createCourseUseCase)
             .register(TOKENS.CreateCategoryUC, createCategoryUseCase)
             .register(TOKENS.CreateGroupUC, createGroupUseCase)

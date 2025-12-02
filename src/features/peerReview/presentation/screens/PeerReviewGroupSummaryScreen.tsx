@@ -13,6 +13,7 @@ import { useCourseController } from "@/src/features/course/hooks/useCourseContro
 import { useEnrollmentController } from "@/src/features/enrollment/hooks/useEnrollmentController";
 import { useGroupController } from "@/src/features/group/hooks/useGroupController";
 import { useAssessmentRepository } from "@/src/data/repositories/hooks/useAssessmentRepository";
+import useComputeCourseSummary from "@/src/features/peerReview/hooks/useComputeCourseSummary";
 import { useDI } from "@/src/core/di/DIProvider";
 import { TOKENS } from "@/src/core/di/tokens";
 import { MembershipRepository } from "@/src/domain/repositories/MembershipRepository";
@@ -39,6 +40,7 @@ export const PeerReviewGroupSummaryScreen: React.FC = () => {
   const [enrollmentState, enrollmentController] = useEnrollmentController();
   const assessmentRepository = useAssessmentRepository();
   const di = useDI();
+  const { execute: computeCourseSummary } = useComputeCourseSummary();
   
   // Validar que los hooks devuelvan valores válidos
   if (!courseController || !groupController || !activityController || !enrollmentController) {
@@ -82,8 +84,8 @@ export const PeerReviewGroupSummaryScreen: React.FC = () => {
           activityController.loadForStudent(courseId, { force }),
         ]);
 
-        // Cargar resumen del curso
-        const summary = await assessmentRepository.computeCourseSummary(activityIds);
+        // Cargar resumen del curso (usecase de dominio)
+        const summary = await computeCourseSummary(activityIds);
         const foundGroupStats = summary.groups.find((g) => g.groupId === groupId);
         setGroupStats(foundGroupStats || null);
 
@@ -126,6 +128,7 @@ export const PeerReviewGroupSummaryScreen: React.FC = () => {
       groupController,
       activityController,
       assessmentRepository,
+      computeCourseSummary,
       membershipRepository,
       enrollmentController,
       activityState?.studentActivitiesByCourse,
